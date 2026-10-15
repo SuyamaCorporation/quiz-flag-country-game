@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>World Flag Country Quiz</title>
+<script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-900 text-gray-100 min-h-screen p-4">
+<div class="max-w-2xl mx-auto">
+  <h1 class="text-2xl font-bold text-center mb-2 text-blue-400">World Flag Quiz</h1>
+
+  <div class="flex gap-2 mb-4 flex-wrap justify-center">
+    <button onclick="setRegion('all')" id="rAll" class="px-3 py-1 rounded text-xs bg-blue-600">All</button>
+    <button onclick="setRegion('asia')" id="rAsia" class="px-3 py-1 rounded text-xs bg-gray-600">Asia</button>
+    <button onclick="setRegion('europe')" id="rEurope" class="px-3 py-1 rounded text-xs bg-gray-600">Europe</button>
+    <button onclick="setRegion('americas')" id="rAmericas" class="px-3 py-1 rounded text-xs bg-gray-600">Americas</button>
+    <button onclick="setRegion('africa')" id="rAfrica" class="px-3 py-1 rounded text-xs bg-gray-600">Africa</button>
+    <button onclick="setRegion('oceania')" id="rOceania" class="px-3 py-1 rounded text-xs bg-gray-600">Oceania</button>
+  </div>
+
+  <div class="flex justify-between items-center mb-4">
+    <div class="text-sm">Score: <span id="score" class="text-green-400 font-bold">0</span>/<span id="total" class="text-gray-400">0</span></div>
+    <div id="streak" class="text-sm text-yellow-400"></div>
+    <button onclick="newQuestion()" class="bg-gray-600 hover:bg-gray-700 px-3 py-1 rounded text-sm">Skip</button>
+  </div>
+
+  <div class="bg-gray-800 rounded p-6 mb-4 flex justify-center">
+    <div id="flagDisplay" class="text-center" style="width:280px;height:180px;display:flex;align-items:center;justify-content:center;"></div>
+  </div>
+
+  <div id="feedback" class="text-center text-lg font-bold mb-3 min-h-7"></div>
+
+  <div class="grid grid-cols-2 gap-2 mb-4" id="choices"></div>
+
+  <div id="explanation" class="text-center text-sm text-gray-400 min-h-5"></div>
+</div>
+
+<script>
+const FLAGS = [
+  // Asia
+  { country: 'Japan', region: 'asia', flag: () => drawFlag_japan() },
+  { country: 'China', region: 'asia', flag: () => drawFlag_china() },
+  { country: 'South Korea', region: 'asia', flag: () => drawFlag_korea() },
+  { country: 'India', region: 'asia', flag: () => drawFlag_india() },
+  { country: 'Thailand', region: 'asia', flag: () => drawFlag_thailand() },
+  { country: 'Indonesia', region: 'asia', flag: () => drawFlag_indonesia() },
+  { country: 'Vietnam', region: 'asia', flag: () => drawFlag_vietnam() },
+  { country: 'Bangladesh', region: 'asia', flag: () => drawFlag_bangladesh() },
+  // Europe
+  { country: 'France', region: 'europe', flag: () => drawFlag_france() },
+  { country: 'Germany', region: 'europe', flag: () => drawFlag_germany() },
+  { country: 'Italy', region: 'europe', flag: () => drawFlag_italy() },
+  { country: 'Spain', region: 'europe', flag: () => drawFlag_spain() },
+  { country: 'Netherlands', region: 'europe', flag: () => drawFlag_netherlands() },
+  { country: 'Sweden', region: 'europe', flag: () => drawFlag_sweden() },
+  { country: 'Poland', region: 'europe', flag: () => drawFlag_poland() },
+  { country: 'Ukraine', region: 'europe', flag: () => drawFlag_ukraine() },
+  { country: 'Norway', region: 'europe', flag: () => drawFlag_norway() },
+  { country: 'Switzerland', region: 'europe', flag: () => drawFlag_switzerland() },
+  // Americas
+  { country: 'United States', region: 'americas', flag: () => drawFlag_usa() },
+  { country: 'Brazil', region: 'americas', flag: () => drawFlag_brazil() },
+  { country: 'Canada', region: 'americas', flag: () => drawFlag_canada() },
+  { country: 'Mexico', region: 'americas', flag: () => drawFlag_mexico() },
+  { country: 'Argentina', region: 'americas', flag: () => drawFlag_argentina() },
+  // Africa
+  { country: 'Nigeria', region: 'africa', flag: () => drawFlag_nigeria() },
+  { country: 'South Africa', region: 'africa', flag: () => drawFlag_southafrica() },
+  { country: 'Kenya', region: 'africa', flag: () => drawFlag_kenya() },
+  { country: 'Ethiopia', region: 'africa', flag: () => drawFlag_ethiopia() },
+  { country: 'Egypt', region: 'africa', flag: () => drawFlag_egypt() },
+  // Oceania
+  { country: 'Australia', region: 'oceania', flag: () => drawFlag_australia() },
+  { country: 'New Zealand', region: 'oceania', flag: () => drawFlag_nz() },
+];
+
+let region = 'all';
+let score = 0, total = 0, streak = 0;
+let currentIdx = -1;
+
+function setRegion(r) {
+  region = r;
+  ['all','asia','europe','americas','africa','oceania'].forEach(x => {
+    document.getElementById('r' + x.charAt(0).toUpperCase() + x.slice(1)).className =
+      'px-3 py-1 rounded text-xs ' + (x === r ? 'bg-blue-600' : 'bg-gray-600');
+  });
+  score = 0; total = 0; streak = 0;
+  document.getElementById('score').textContent = 0;
+  document.getElementById('total').textContent = 0;
+  newQuestion();
+}
+
+function getFiltered() {
+  return region === 'all' ? FLAGS : FLAGS.filter(f => f.region === region);
+}
+
+function newQuestion() {
+  const pool = getFiltered();
+  if (pool.length < 4) return;
+  const idx = Math.floor(Math.random() * pool.length);
+  currentIdx = idx;
+  const correct = pool[idx];
+
+  // Draw flag
+  document.getElementById('flagDisplay').innerHTML = '';
+  const canvas = document.createElement('canvas');
+  canvas.width = 280; canvas.height = 168;
+  canvas.setAttribute('aria-label', 'Country flag to identify');
+  document.getElementById('flagDisplay').appendChild(canvas);
+  window._currentCanvas = canvas;
+  correct.flag();
+
+  // Choices
+  const wrongs = pool.filter((_, i) => i !== idx).sort(() => Math.random()-0.5).slice(0,3);
+  const choices = [correct, ...wrongs].sort(() => Math.random()-0.5);
+
+  document.getElementById('feedback').textContent = '';
+  document.getElementById('explanation').textContent = '';
+
+  const div = document.getElementById('choices');
+  div.innerHTML = choices.map(c => `
+    <button onclick="answer('${c.country.replace(/'/g,"\\'")}','${correct.country.replace(/'/g,"\\'")}',this)" class="bg-gray-700 hover:bg-blue-700 border border-gray-600 px-3 py-3 rounded text-sm font-medium transition-colors" aria-label="Answer: ${c.country}">
+      ${c.country}
+    </button>
+  `).join('');
+}
+
+function answer(chosen, correct, btn) {
+  total++;
+  const ok = chosen === correct;
+  if (ok) { score++; streak++; } else { streak = 0; }
+  document.getElementById('score').textContent = score;
+  document.getElementById('total').textContent = total;
+  document.getElementById('streak').textContent = streak > 1 ? '🔥 ' + streak : '';
+  document.getElementById('feedback').textContent = ok ? '✓ Correct!' : `✗ It was ${correct}`;
+  document.getElementById('feedback').className = 'text-center text-lg font-bold mb-3 ' + (ok ? 'text-green-400' : 'text-red-400');
+
+  const pool = getFiltered();
+  const f = pool.find(x => x.country === correct);
+  if (f) document.getElementById('explanation').textContent = `${f.country} · ${f.region.charAt(0).toUpperCase()+f.region.slice(1)}`;
+
+  document.querySelectorAll('#choices button').forEach(b => {
+    b.disabled = true;
+    if (b.textContent.trim() === correct) b.className = 'bg-green-800 border border-green-500 px-3 py-3 rounded text-sm font-medium';
+    else if (b === btn && !ok) b.className = 'bg-red-900 border border-red-500 px-3 py-3 rounded text-sm font-medium opacity-70';
+    else b.className = 'bg-gray-800 border border-gray-700 px-3 py-3 rounded text-sm font-medium opacity-40';
+  });
+}
+
+// Flag drawing functions
+function getCtx() { return window._currentCanvas.getContext('2d'); }
+function W() { return window._currentCanvas.width; }
+function H() { return window._currentCanvas.height; }
+
+function drawFlag_japan() {
+  const c = getCtx(), w = W(), h = H();
+  c.fillStyle = '#fff'; c.fillRect(0,0,w,h);
+  c.fillStyle = '#bc002d'; c.beginPath(); c.arc(w/2, h/2, h*0.3, 0, Math.PI*2); c.fill();
+}
+function drawFlag_china() {
+  const c = getCtx(), w = W(), h = H();
+  c.fillStyle = '#de2910'; c.fillRect(0,0,w,h);
+  c.fillStyle = '#ffde00';
+  // Big star
+  drawStar(c, w*0.15, h*0.25, h*0.12);
+  // Small stars
+  [[0.3,0.12],[0.35,0.22],[0.35,0.35],[0.3,0.45]].forEach(([x,y]) => drawStar(c, w*x, h*y, h*0.05));
+}
+function drawStar(c, cx, cy, r) {
+  c.beginPath();
+  for (let i = 0; i < 5; i++) {
+    const a = (i*4*Math.PI/5) - Math.PI/2;
+    const b = (i*4*Math.PI/5 + 2*Math.PI/5) - Math.PI/2;
+    if (i === 0) c.moveTo(cx + r*Math.cos(a), cy + r*Math.sin(a));
+    else c.lineTo(cx + r*Math.cos(a), cy + r*Math.sin(a));
+    c.lineTo(cx + r*0.4*Math.cos(b), cy + r*0.4*Math.sin(b));
+  }
+  c.closePath(); c.fill();
+}
+function drawFlag_korea() {
+  const c = getCtx(), w = W(), h = H();
+  c.fillStyle = '#fff'; c.fillRect(0,0,w,h);
+  // Taeguk circle
+  c.fillStyle = '#cd2e3a'; c.beginPath(); c.arc(w/2,h/2,h*0.22,0,Math.PI); c.fill();
+  c.fillStyle = '#0047a0'; c.beginPath(); c.arc(w/2,h/2,h*0.22,Math.PI,Math.PI*2); c.fill();
+  // Simple trigrams (lines)
+  c.strokeStyle = '#000'; c.lineWidth = 3;
+  [[0.25,0.3],[0.25,0.7],[0.75,0.3],[0.75,0.7]].forEach(([ox,oy]) => {
+    for (let i = 0; i < 3; i++) {
+      c.beginPath(); c.moveTo(w*ox-15, h*oy+(i-1)*8); c.lineTo(w*ox+15, h*oy+(i-1)*8); c.stroke();
+    }
+  });
+}
+function drawFlag_india() {
+  const c = getCtx(), w = W(), h = H();
+  c.fillStyle = '#ff9933'; c.fillRect(0,0,w,h/3);
+  c.fillStyle = '#fff'; c.fillRect(0,h/3,w,h/3);
+  c.fillStyle = '#138808'; c.fillRect(0,2*h/3,w,h/3);
+  // Chakra
+  c.strokeStyle = '#000080'; c.lineWidth = 2;
+  c.beginPath(); c.arc(w/2,h/2,h*0.15,0,Math.PI*2); c.stroke();
+  for (let i = 0; i < 24; i++) {
+    const a = i*Math.PI*2/24;
+    c.beginPath(); c.moveTo(w/2+h*0.05*Math.cos(a),h/2+h*0.05*Math.sin(a));
+    c.lineTo(w/2+h*0.15*Math.cos(a),h/2+h*0.15*Math.sin(a)); c.stroke();
+  }
+}
+function drawFlag_thailand() {
+  const c = getCtx(), w = W(), h = H();
+  const bh = h/6;
+  c.fillStyle = '#A51931'; c.fillRect(0,0,w,bh);
+  c.fillStyle = '#fff'; c.fillRect(0,bh,w,bh);
+  c.fillStyle = '#2D2A4A'; c.fillRect(0,2*bh,w,2*bh);
+  c.fillStyle = '#fff'; c.fillRect(0,4*bh,w,bh);
+  c.fillStyle = '#A51931'; c.fillRect(0,5*bh,w,bh);
+}
+function drawFlag_indonesia() {
+  const c = getCtx(), w = W(), h = H();
+  c.fillStyle = '#ce1126'; c.fillRect(0,0,w,h/2);
+  c.fillStyle = '#fff'; c.fillRect(0,h/2,w,h/2);
+}
+function drawFlag_vietnam() {
+  const c = getCtx(), w = W(), h = H();
+  c.fillStyle = '#da251d'; c.fillRect(0,0,w,h);
+  c.fillStyle = '#ffcd00'; drawStar(c, w/2, h/2, h*0.3);
+}
+function drawFlag_bangladesh() {
+  const c = getCtx(), w = W(), h = H();
+  c.fillStyle = '#006a4e'; c.fillRect(0,0,w,h);
+  c.fillStyle = '#f42a41'; c.beginPath(); c.arc(w*0.45,h/2,h*0.28,0,Math.PI*2); c.fill();
+}
+function drawFlag_france() {
+  const c = getCtx(), w = W(), h = H();
+  c.fillStyle = '#002395'; c.fillRect(0,0,w/3,h);
+  c.fillStyle = '#fff'; c.fillRect(w/3,0,w/3,h);
+  c.fillStyle = '#ED2939'; c.fillRect(2*w/3,0,w/3,h);
+}
+function drawFlag_germany() {
+  const c = getCtx(), w = W(), h = H();
+  c.fillStyle = '#000'; c.fillRect(0,0,w,h/3);
+  c.fillStyle = '#DD0000'; c.fillRect(0,h/3,w,h/3);
+  c.fillStyle = '#FFCE00'; c.fillRect(0,2*h/3,w,h/3);
+}
+function drawFlag_italy() {
+  const c = getCtx(), w = W(), h = H();
+  c.fillStyle = '#009246'; c.fillRect(0,0,w/3,h);
+  c.fillStyle = '#fff'; c.fillRect(w/3,0,w/3,h);
+  c.fillStyle = '#CE2B37'; c.fillRect(2*w/3,0,w/3,h);
+}
+function drawFlag_spain() {
+  const c = getCtx(), w = W(), h = H();
+  c.fillStyle = '#c60b1e'; c.fillRect(0,0,w,h);
+  c.fillStyle = '#ffc400'; c.fillRect(0,h*0.25,w,h*0.5);
+}
+function drawFlag_netherlands() {
+  const c = getCtx(), w = W(), h = H();
+  c.fillStyle = '#AE1C28'; c.fillRect(0,0,w,h/3);
+  c.fillStyle = '#fff'; c.fillRect(0,h/3,w,h/3);
+  c.fillStyle = '#21468B'; c.fillRect(0,2*h/3,w,h/3);
+}
+function drawFlag_sweden() {
+  const c = getCtx(), w = W(), h = H();
+  c.fillStyle = '#006AA7'; c.fillRect(0,0,w,h);
+  c.fillStyle = '#FECC02';
+  c.fillRect(0, h*0.38, w, h*0.23);
+  c.fillRect(w*0.33, 0, w*0.13, h);
+}
+function drawFlag_poland() {
+  const c = getCtx(), w = W(), h = H();
+  c.fillStyle = '#fff'; c.fillRect(0,0,w,h/2);
+  c.fillStyle = '#DC143C'; c.fillRect(0,h/2,w,h/2);
+}
+function drawFlag_ukraine() {
+  const c = getCtx(), w = W(), h = H();
+  c.fillStyle = '#005BBB'; c.fillRect(0,0,w,h/2);
+  c.fillStyle = '#FFD500'; c.fillRect(0,h/2,w,h/2);
+}
+function drawFlag_norway() {
+  const c = getCtx(), w = W(), h = H();
+  c.fillStyle = '#EF2B2D'; c.fillRect(0,0,w,h);
+  c.fillStyle = '#fff'; c.fillRect(0,h*0.35,w,h*0.3);
+  c.fillRect(w*0.25,0,w*0.17,h);
+  c.fillStyle = '#002868';
+  c.fillRect(0,h*0.38,w,h*0.24);
+  c.fillRect(w*0.28,0,w*0.1,h);
+}
+function drawFlag_switzerland() {
+  const c = getCtx(), w = W(), h = H();
+  c.fillStyle = '#FF0000'; c.fillRect(0,0,w,h);
+  c.fillStyle = '#fff';
+  c.fillRect(w*0.38,h*0.2,w*0.24,h*0.6);
+  c.fillRect(w*0.2,h*0.38,w*0.6,h*0.24);
+}
+function drawFlag_usa() {
+  const c = getCtx(), w = W(), h = H();
+  for (let i = 0; i < 13; i++) {
+    c.fillStyle = i % 2 === 0 ? '#B22234' : '#fff';
+    c.fillRect(0, i*h/13, w, h/13);
+  }
+  c.fillStyle = '#3C3B6E'; c.fillRect(0,0,w*0.4,h*0.54);
+}
+function drawFlag_brazil() {
+  const c = getCtx(), w = W(), h = H();
+  c.fillStyle = '#009c3b'; c.fillRect(0,0,w,h);
+  c.fillStyle = '#FEDF00';
+  c.beginPath(); c.moveTo(w*0.5,h*0.08); c.lineTo(w*0.92,h*0.5); c.lineTo(w*0.5,h*0.92); c.lineTo(w*0.08,h*0.5); c.closePath(); c.fill();
+  c.fillStyle = '#002776'; c.beginPath(); c.arc(w/2,h/2,h*0.24,0,Math.PI*2); c.fill();
+  c.strokeStyle = '#8ef'; c.lineWidth = 1.5;
+  c.beginPath(); c.moveTo(w*0.27,h*0.55); c.bezierCurveTo(w*0.5,h*0.3,w*0.7,h*0.55,w*0.73,h*0.55); c.stroke();
+}
+function drawFlag_canada() {
+  const c = getCtx(), w = W(), h = H();
+  c.fillStyle = '#ff0000'; c.fillRect(0,0,w/4,h); c.fillRect(3*w/4,0,w/4,h);
+  c.fillStyle = '#fff'; c.fillRect(w/4,0,w/2,h);
+  // Simple maple leaf
+  c.fillStyle = '#ff0000';
+  c.beginPath(); c.arc(w/2,h/2,h*0.25,0,Math.PI*2); c.fill();
+  c.fillStyle = '#fff'; c.font = `${h*0.5}px serif`; c.textAlign = 'center'; c.textBaseline = 'middle';
+  c.fillText('🍁', w/2, h/2);
+}
+function drawFlag_mexico() {
+  const c = getCtx(), w = W(), h = H();
+  c.fillStyle = '#006847'; c.fillRect(0,0,w/3,h);
+  c.fillStyle = '#fff'; c.fillRect(w/3,0,w/3,h);
+  c.fillStyle = '#ce1126'; c.fillRect(2*w/3,0,w/3,h);
+  c.font = `${h*0.5}px serif`; c.textAlign = 'center'; c.textBaseline = 'middle';
+  c.fillText('🦅', w/2, h/2);
+}
+function drawFlag_argentina() {
+  const c = getCtx(), w = W(), h = H();
+  c.fillStyle = '#74ACDF'; c.fillRect(0,0,w,h/3);
+  c.fillStyle = '#fff'; c.fillRect(0,h/3,w,h/3);
+  c.fillStyle = '#74ACDF'; c.fillRect(0,2*h/3,w,h/3);
+  // Sun of May (simplified)
+  c.fillStyle = '#F6B40E';
+  c.beginPath(); c.arc(w/2,h/2,h*0.15,0,Math.PI*2); c.fill();
+}
+function drawFlag_nigeria() {
+  const c = getCtx(), w = W(), h = H();
+  c.fillStyle = '#008751'; c.fillRect(0,0,w/3,h); c.fillRect(2*w/3,0,w/3,h);
+  c.fillStyle = '#fff'; c.fillRect(w/3,0,w/3,h);
+}
+function drawFlag_southafrica() {
+  const c = getCtx(), w = W(), h = H();
+  c.fillStyle = '#007a4d'; c.fillRect(0,0,w,h/3);
+  c.fillStyle = '#fff'; c.fillRect(0,h/3,w,h/3);
+  c.fillStyle = '#de3831'; c.fillRect(0,2*h/3,w,h/3);
+  c.fillStyle = '#000'; const hw=h*0.5;
+  c.beginPath(); c.moveTo(0,0); c.lineTo(hw,h/2); c.lineTo(0,h); c.closePath(); c.fill();
+  c.fillStyle = '#ffb612';
+  c.beginPath(); c.moveTo(0,h*0.1); c.lineTo(hw*0.8,h/2); c.lineTo(0,h*0.9); c.closePath(); c.fill();
+}
+function drawFlag_kenya() {
+  const c = getCtx(), w = W(), h = H();
+  c.fillStyle = '#006600'; c.fillRect(0,0,w,h/3);
+  c.fillStyle = '#fff'; c.fillRect(0,h/3-3,w,6);
+  c.fillStyle = '#000'; c.fillRect(0,h/3+3,w,h/3-6);
+  c.fillStyle = '#fff'; c.fillRect(0,2*h/3-3,w,6);
+  c.fillStyle = '#bb0000'; c.fillRect(0,2*h/3+3,w,h/3-3);
+  // Shield symbol
+  c.fillStyle = '#bb0000'; c.fillRect(w/2-8,h/2-20,16,40);
+  c.fillStyle = '#000'; c.fillRect(w/2-15,h/4,5,h/2); c.fillRect(w/2+10,h/4,5,h/2);
+}
+function drawFlag_ethiopia() {
+  const c = getCtx(), w = W(), h = H();
+  c.fillStyle = '#078930'; c.fillRect(0,0,w,h/3);
+  c.fillStyle = '#FCDD09'; c.fillRect(0,h/3,w,h/3);
+  c.fillStyle = '#DA121A'; c.fillRect(0,2*h/3,w,h/3);
+  c.fillStyle = '#0F47AF'; c.beginPath(); c.arc(w/2,h/2,h*0.2,0,Math.PI*2); c.fill();
+  c.fillStyle = '#FCDD09'; drawStar(c, w/2, h/2, h*0.17);
+}
+function drawFlag_egypt() {
+  const c = getCtx(), w = W(), h = H();
+  c.fillStyle = '#CE1126'; c.fillRect(0,0,w,h/3);
+  c.fillStyle = '#fff'; c.fillRect(0,h/3,w,h/3);
+  c.fillStyle = '#000'; c.fillRect(0,2*h/3,w,h/3);
+  // Eagle silhouette
+  c.fillStyle = '#C09300'; c.font = `${h*0.3}px serif`; c.textAlign = 'center'; c.textBaseline = 'middle';
+  c.fillText('🦅', w/2, h/2);
+}
+function drawFlag_australia() {
+  const c = getCtx(), w = W(), h = H();
+  c.fillStyle = '#00008B'; c.fillRect(0,0,w,h);
+  // Union Jack
+  c.fillStyle = '#fff'; c.fillRect(0,0,w/2,h/2);
+  c.fillStyle = '#CC0000';
+  c.fillRect(w*0.2,0,w*0.08,h/2); c.fillRect(0,h*0.2,w/2,h*0.1);
+  c.fillStyle = '#00008B'; c.fillRect(w*0.22,0,w*0.04,h/2); c.fillRect(0,h*0.22,w/2,h*0.06);
+  // Southern Cross (simplified)
+  c.fillStyle = '#fff';
+  [[0.75,0.2],[0.85,0.35],[0.65,0.35],[0.75,0.5],[0.78,0.62]].forEach(([x,y]) => {
+    drawStar(c, w*x, h*y, h*0.06);
+  });
+}
+function drawFlag_nz() {
+  const c = getCtx(), w = W(), h = H();
+  c.fillStyle = '#00247D'; c.fillRect(0,0,w,h);
+  c.fillStyle = '#CC142B'; drawStar(c, w*0.75,h*0.2,h*0.1); drawStar(c, w*0.85,h*0.45,h*0.08); drawStar(c, w*0.7,h*0.65,h*0.08); drawStar(c, w*0.85,h*0.75,h*0.06);
+  // Union Jack simplified
+  c.fillStyle = '#fff'; c.fillRect(0,0,w*0.4,h*0.5);
+  c.fillStyle = '#CC142B';
+  c.fillRect(w*0.17,0,w*0.06,h*0.5); c.fillRect(0,h*0.2,w*0.4,h*0.1);
+  c.fillStyle = '#00247D'; c.fillRect(w*0.19,0,w*0.02,h*0.5); c.fillRect(0,h*0.23,w*0.4,h*0.04);
+}
+
+newQuestion();
+</script>
+</body>
+</html>
